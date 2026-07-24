@@ -8,15 +8,25 @@
   RewriteRule . /index.html [L]
 </IfModule>
 
-# Add correct MIME type for .js and .mjs files
+# Correct MIME types for modern JS modules
 <IfModule mod_mime.c>
   AddType application/javascript .js
   AddType application/javascript .mjs
+  AddType application/wasm .wasm
 </IfModule>
 
-# Force correct MIME type if mod_headers is available
 <IfModule mod_headers.c>
   <FilesMatch "\.(js|mjs)$">
     Header set Content-Type "application/javascript"
+  </FilesMatch>
+
+  # Entry HTML must never be cached, so a new deploy is seen immediately.
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+  </FilesMatch>
+
+  # Content-hashed build assets can be cached forever.
+  <FilesMatch "\.(js|mjs|css|woff2?|png|jpe?g|svg|webp|gif|ico)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>
 </IfModule>
