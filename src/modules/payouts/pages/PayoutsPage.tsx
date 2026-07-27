@@ -18,6 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/Button';
 import { payoutService, type PayoutStatus } from '@/core/api/payouts';
 import OrderLevelBreakdown from '../components/OrderLevelBreakdown';
+import ICICIPayoutExportCard from '../components/ICICIPayoutExportCard';
 import toast from 'react-hot-toast';
 import { CustomPromptModal, CustomConfirmModal } from '@/components/ui/CustomPopups';
 
@@ -234,7 +235,7 @@ export default function PayoutsPage() {
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-[28px] font-bold text-gray-900 tracking-tight">Payouts</h1>
-          <p className="text-[14px] text-gray-500 mt-1">Manage automated payouts and handle exceptions</p>
+          <p className="text-[14px] text-gray-500 mt-1">Manage automated payouts, bulk ICICI transfers, and exceptions</p>
         </div>
         
         <div className="flex items-center gap-3">
@@ -248,6 +249,12 @@ export default function PayoutsPage() {
           </div>
         </div>
       </div>
+
+      {/* ICICI Bulk Export Feature Panel */}
+      <ICICIPayoutExportCard 
+        activeTab={primaryTab} 
+        onTabChange={(tab) => setPrimaryTab(tab)} 
+      />
 
       {/* Main Tabs */}
       <div className="flex items-center gap-4 mb-6">
