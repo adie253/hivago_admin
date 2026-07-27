@@ -10,7 +10,18 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+.env
+.env.production
+.env.development
+.env.local
+.env*.local
+.env*
 *.local
+
+# Junk & Scratch files
+all_ids.txt
+api_output.txt
+scratch/
 
 # Editor directories and files
 .vscode/*
