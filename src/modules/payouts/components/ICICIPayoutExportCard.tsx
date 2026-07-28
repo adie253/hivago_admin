@@ -106,7 +106,6 @@ export default function ICICIPayoutExportCard({ activeTab, onTabChange }: ICICIP
       } else {
         // Formulate ISO Utc timestamps with Z suffix for riders
         const cycleStartUtc = `${startDate}T00:00:00Z`;
-        // To cover the full sunday end date, use next day 00:00:00Z or date T00:00:00Z
         const endDateObj = new Date(endDate);
         endDateObj.setDate(endDateObj.getDate() + 1);
         const nextDayStr = endDateObj.toISOString().split('T')[0];
@@ -156,32 +155,28 @@ export default function ICICIPayoutExportCard({ activeTab, onTabChange }: ICICIP
   };
 
   return (
-    <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white rounded-2xl p-6 shadow-xl border border-slate-700/50 mb-8 relative overflow-hidden">
-      {/* Decorative Glow Background Effect */}
-      <div className="absolute -right-16 -top-16 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -left-16 -bottom-16 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-
+    <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm mb-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-700/60 relative z-10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-gray-100">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20 text-white font-bold">
-            <Building2 className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-xl bg-red-50 text-[#d72b1f] border border-red-100 flex items-center justify-center shrink-0">
+            <Building2 className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-white tracking-tight">ICICI Bulk Payout Export</h2>
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              <h2 className="text-[17px] font-bold text-gray-900 tracking-tight">ICICI Bulk Payout Export</h2>
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                 Ready for Transfer
               </span>
             </div>
-            <p className="text-xs text-slate-300 mt-1">
-              Generate ready-to-upload ICICI bank transfer files for weekly restaurant and rider payouts
+            <p className="text-[13px] text-gray-500 mt-0.5">
+              Generate ready-to-upload ICICI bank transfer files for weekly payouts
             </p>
           </div>
         </div>
 
-        {/* Export Type Toggle */}
-        <div className="flex items-center bg-slate-800/90 p-1 rounded-xl border border-slate-700/80 self-start md:self-auto">
+        {/* Export Type Segmented Control */}
+        <div className="flex items-center bg-gray-100/80 p-1 rounded-xl border border-gray-200 self-start md:self-auto">
           <button
             type="button"
             onClick={() => {
@@ -191,8 +186,8 @@ export default function ICICIPayoutExportCard({ activeTab, onTabChange }: ICICIP
             className={cn(
               "px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2",
               exportType === 'restaurant'
-                ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md"
-                : "text-slate-400 hover:text-white"
+                ? "bg-[#d72b1f] text-white shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
             )}
           >
             <Building2 className="w-3.5 h-3.5" />
@@ -207,8 +202,8 @@ export default function ICICIPayoutExportCard({ activeTab, onTabChange }: ICICIP
             className={cn(
               "px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2",
               exportType === 'rider'
-                ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md"
-                : "text-slate-400 hover:text-white"
+                ? "bg-[#059669] text-white shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
             )}
           >
             <UserCheck className="w-3.5 h-3.5" />
@@ -218,11 +213,11 @@ export default function ICICIPayoutExportCard({ activeTab, onTabChange }: ICICIP
       </div>
 
       {/* Control Area: Date Pickers & Presets */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 my-6 relative z-10">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 pt-5">
         <div className="lg:col-span-8 space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-              <Calendar className="w-4 h-4 text-amber-400" />
+            <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+              <Calendar className="w-4 h-4 text-gray-400" />
               Payout Window ({exportType === 'restaurant' ? 'Date Period' : 'UTC Cycle'})
             </label>
             
@@ -231,14 +226,14 @@ export default function ICICIPayoutExportCard({ activeTab, onTabChange }: ICICIP
               <button
                 type="button"
                 onClick={() => handlePresetSelect('lastWeek')}
-                className="text-[11px] font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700/80 px-2.5 py-1 rounded-md border border-slate-700 transition-colors"
+                className="text-[11px] font-semibold text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 border border-gray-200 px-3 py-1 rounded-lg transition-colors"
               >
                 Last Week (Mon–Sun)
               </button>
               <button
                 type="button"
                 onClick={() => handlePresetSelect('twoWeeksAgo')}
-                className="text-[11px] font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700/80 px-2.5 py-1 rounded-md border border-slate-700 transition-colors"
+                className="text-[11px] font-semibold text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 border border-gray-200 px-3 py-1 rounded-lg transition-colors"
               >
                 2 Weeks Ago
               </button>
@@ -247,25 +242,25 @@ export default function ICICIPayoutExportCard({ activeTab, onTabChange }: ICICIP
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <span className="text-[11px] font-medium text-slate-400 block mb-1">
+              <span className="text-[11px] font-semibold text-gray-500 block mb-1">
                 {exportType === 'restaurant' ? 'Period Start (Monday)' : 'Cycle Start (UTC)'}
               </span>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all font-mono"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-gray-800 focus:outline-none focus:bg-white focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all font-mono"
               />
             </div>
             <div>
-              <span className="text-[11px] font-medium text-slate-400 block mb-1">
+              <span className="text-[11px] font-semibold text-gray-500 block mb-1">
                 {exportType === 'restaurant' ? 'Period End (Sunday)' : 'Cycle End (UTC)'}
               </span>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all font-mono"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-gray-800 focus:outline-none focus:bg-white focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all font-mono"
               />
             </div>
           </div>
@@ -278,10 +273,10 @@ export default function ICICIPayoutExportCard({ activeTab, onTabChange }: ICICIP
             disabled={exportMutation.isPending || !startDate || !endDate}
             onClick={() => exportMutation.mutate()}
             className={cn(
-              "w-full h-[46px] rounded-xl font-bold text-sm text-white shadow-lg transition-all flex items-center justify-center gap-2",
+              "w-full h-[44px] rounded-xl font-bold text-xs text-white shadow-sm transition-all flex items-center justify-center gap-2",
               exportType === 'restaurant'
-                ? "bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-600 hover:to-red-600 shadow-orange-500/25"
-                : "bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 shadow-teal-500/25"
+                ? "bg-[#d72b1f] hover:bg-red-700 shadow-red-100"
+                : "bg-[#059669] hover:bg-emerald-700 shadow-emerald-100"
             )}
           >
             {exportMutation.isPending ? (
@@ -302,12 +297,12 @@ export default function ICICIPayoutExportCard({ activeTab, onTabChange }: ICICIP
 
       {/* Empty Notice State (404) */}
       {emptyNotice && (
-        <div className="mt-4 bg-slate-800/90 border border-amber-500/40 rounded-xl p-4 flex items-start gap-3 relative z-10 animate-in fade-in duration-200">
-          <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+        <div className="mt-4 bg-amber-50/70 border border-amber-200 rounded-xl p-4 flex items-start gap-3 animate-in fade-in duration-200">
+          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
           <div>
-            <h4 className="text-xs font-bold text-amber-300">Nothing to export for this week</h4>
-            <p className="text-xs text-slate-300 mt-0.5">
-              No Pending payouts exist for the selected {exportType} window ({startDate} to {endDate}). This usually means payouts for this week have already been exported or no new pending balances were queued.
+            <h4 className="text-xs font-bold text-amber-900">Nothing to export for this week</h4>
+            <p className="text-xs text-amber-700 mt-0.5">
+              No Pending payouts exist for the selected {exportType} window ({startDate} to {endDate}). This usually means payouts for this week have already been exported or no pending balances were queued.
             </p>
           </div>
         </div>
@@ -315,100 +310,100 @@ export default function ICICIPayoutExportCard({ activeTab, onTabChange }: ICICIP
 
       {/* Error Notice State (400 / unexpected) */}
       {errorNotice && (
-        <div className="mt-4 bg-red-950/60 border border-red-500/50 rounded-xl p-4 flex items-start gap-3 relative z-10 animate-in fade-in duration-200">
-          <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+        <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3 animate-in fade-in duration-200">
+          <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
           <div>
-            <h4 className="text-xs font-bold text-red-300">Export Unsuccessful</h4>
-            <p className="text-xs text-red-200 mt-0.5">{errorNotice}</p>
+            <h4 className="text-xs font-bold text-red-900">Export Unsuccessful</h4>
+            <p className="text-xs text-red-700 mt-0.5">{errorNotice}</p>
           </div>
         </div>
       )}
 
       {/* Export Result Receipt (Inline) */}
       {lastMetaResult && (
-        <div className="mt-6 bg-slate-800/90 border border-slate-700 rounded-2xl p-5 relative z-10 animate-in slide-in-from-bottom-2 duration-300 shadow-inner">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-700/80">
+        <div className="mt-5 bg-gray-50 border border-gray-200 rounded-xl p-4 animate-in slide-in-from-bottom-2 duration-300">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-200">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
               <div>
-                <h3 className="text-sm font-bold text-white">ICICI Bulk File Exported Successfully</h3>
-                <p className="text-xs text-slate-300">
-                  Target: <span className="capitalize font-semibold text-white">{lastMetaResult.type}</span> • Window: {lastMetaResult.periodStart} to {lastMetaResult.periodEnd}
+                <h3 className="text-xs font-bold text-gray-900">ICICI Bulk Transfer File Exported Successfully</h3>
+                <p className="text-[11px] text-gray-500">
+                  Target: <span className="capitalize font-semibold text-gray-800">{lastMetaResult.type}</span> • Window: {lastMetaResult.periodStart} to {lastMetaResult.periodEnd}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2 self-start sm:self-auto">
-              <span className="px-2.5 py-1 rounded-md bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30 flex items-center gap-1">
+              <span className="px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-200 flex items-center gap-1">
                 <Check className="w-3.5 h-3.5" /> File Downloaded (.xlsx)
               </span>
             </div>
           </div>
 
           {/* Key Metrics Receipt Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-4">
-            <div className="bg-slate-900/80 border border-slate-700/80 rounded-xl p-3.5">
-              <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block mb-1">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 my-3">
+            <div className="bg-white border border-gray-200 rounded-lg p-3">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">
                 Export Batch ID
               </span>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-mono font-bold text-amber-300 truncate" title={lastMetaResult.meta.exportBatchId}>
+                <span className="text-xs font-mono font-bold text-gray-900 truncate" title={lastMetaResult.meta.exportBatchId}>
                   {lastMetaResult.meta.exportBatchId || '—'}
                 </span>
                 {lastMetaResult.meta.exportBatchId && (
                   <button
                     type="button"
                     onClick={() => handleCopyBatchId(lastMetaResult.meta.exportBatchId)}
-                    className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition-colors"
+                    className="p-1 text-gray-400 hover:text-gray-700 rounded hover:bg-gray-100 transition-colors"
                     title="Copy Batch ID"
                   >
-                    {copiedBatchId ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedBatchId ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
                 )}
               </div>
             </div>
 
-            <div className="bg-slate-900/80 border border-slate-700/80 rounded-xl p-3.5">
-              <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block mb-1">
+            <div className="bg-white border border-gray-200 rounded-lg p-3">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">
                 Beneficiary Rows
               </span>
-              <span className="text-lg font-bold text-white">
-                {lastMetaResult.meta.rowCount ?? 0} <span className="text-xs text-slate-400 font-normal">rows included</span>
+              <span className="text-base font-bold text-gray-900">
+                {lastMetaResult.meta.rowCount ?? 0} <span className="text-xs text-gray-500 font-normal">rows included</span>
               </span>
             </div>
 
-            <div className="bg-slate-900/80 border border-slate-700/80 rounded-xl p-3.5">
-              <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block mb-1">
+            <div className="bg-white border border-gray-200 rounded-lg p-3">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">
                 Control Sum Total
               </span>
-              <span className="text-lg font-bold text-emerald-400">
+              <span className="text-base font-bold text-[#059669]">
                 ₹{(lastMetaResult.meta.controlSumTotal ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </span>
             </div>
           </div>
 
-          <p className="text-[11px] text-slate-400 italic">
-            * Note: Verify the Control Sum Total above against ICICI Corporate Portal's total sum prompt after uploading the generated bulk file.
+          <p className="text-[11px] text-gray-500 italic">
+            * Note: Verify the Control Sum Total above against ICICI Corporate Portal's prompt after uploading the generated bulk file.
           </p>
 
           {/* Exclusions Section */}
           {lastMetaResult.meta.excluded && lastMetaResult.meta.excluded.length > 0 && (
-            <div className="mt-5 pt-5 border-t border-slate-700/80">
-              <div className="flex items-center justify-between mb-3">
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-between mb-2.5">
                 <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-400" />
-                  <h4 className="text-xs font-bold text-amber-300">
+                  <AlertTriangle className="w-4 h-4 text-amber-600" />
+                  <h4 className="text-xs font-bold text-amber-900">
                     Excluded Payouts ({lastMetaResult.meta.excluded.length})
                   </h4>
                 </div>
-                <span className="text-[11px] text-slate-400">
+                <span className="text-[11px] text-gray-500">
                   These payouts were skipped during export and remain in Pending status.
                 </span>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-slate-700/80 bg-slate-900/60">
+              <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-800/80 text-slate-400 font-semibold border-b border-slate-700/80">
+                  <thead className="bg-gray-50 text-gray-600 font-semibold border-b border-gray-200">
                     <tr>
                       <th className="py-2.5 px-3.5">Payout ID</th>
                       <th className="py-2.5 px-3.5">{lastMetaResult.type === 'restaurant' ? 'Owner ID' : 'Rider ID'}</th>
@@ -417,16 +412,20 @@ export default function ICICIPayoutExportCard({ activeTab, onTabChange }: ICICIP
                       <th className="py-2.5 px-3.5 text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-700/50 text-slate-200">
+                  <tbody className="divide-y divide-gray-100 text-gray-700">
                     {lastMetaResult.meta.excluded.map((item, idx) => {
                       const entityId = item.ownerId || item.riderId || 'N/A';
                       const amountVal = item.netPayoutAmount ?? item.netPayable ?? 0;
                       return (
-                        <tr key={item.payoutId || idx} className="hover:bg-slate-800/40">
-                          <td className="py-2.5 px-3.5 font-mono text-[11px] text-slate-300">{item.payoutId}</td>
-                          <td className="py-2.5 px-3.5 font-mono text-[11px] text-amber-200">{entityId}</td>
-                          <td className="py-2.5 px-3.5 font-semibold text-white">₹{amountVal.toLocaleString()}</td>
-                          <td className="py-2.5 px-3.5 text-amber-300">{item.reason}</td>
+                        <tr key={item.payoutId || idx} className="hover:bg-gray-50/80">
+                          <td className="py-2.5 px-3.5 font-mono text-[11px] text-gray-600">{item.payoutId}</td>
+                          <td className="py-2.5 px-3.5 font-mono text-[11px] text-gray-900 font-medium">{entityId}</td>
+                          <td className="py-2.5 px-3.5 font-bold text-gray-900">₹{amountVal.toLocaleString()}</td>
+                          <td className="py-2.5 px-3.5 text-amber-800">
+                            <span className="bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded text-[11px] font-medium">
+                              {item.reason}
+                            </span>
+                          </td>
                           <td className="py-2.5 px-3.5 text-right">
                             <button
                               type="button"
@@ -437,7 +436,7 @@ export default function ICICIPayoutExportCard({ activeTab, onTabChange }: ICICIP
                                   navigate('/riders');
                                 }
                               }}
-                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 transition-colors"
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-[#d72b1f] hover:underline transition-colors"
                             >
                               <span>Fix Bank Details</span>
                               <ExternalLink className="w-3 h-3" />
