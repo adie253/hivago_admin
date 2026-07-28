@@ -287,7 +287,7 @@ export default function ICICIPayoutExportCard({ activeTab, onTabChange }: ICICIP
             ) : (
               <>
                 <FileSpreadsheet className="w-4 h-4" />
-                <span>Export {exportType === 'restaurant' ? 'Restaurant' : 'Rider'} ICICI File</span>
+                <span>Download Payout File (.xlsx)</span>
                 <Download className="w-4 h-4 ml-1" />
               </>
             )}
