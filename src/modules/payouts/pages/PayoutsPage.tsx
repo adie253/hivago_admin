@@ -29,7 +29,7 @@ export default function PayoutsPage() {
   const pageSize = 20;
 
   const [selectedPayoutId, setSelectedPayoutId] = useState<string | null>(null);
-  const [selectedRestaurantForDetails, setSelectedRestaurantForDetails] = useState<{ id: string; name: string } | null>(null);
+  const [selectedRestaurantForDetails, setSelectedRestaurantForDetails] = useState<{ payoutId: string; name: string } | null>(null);
   const [dropdownState, setDropdownState] = useState<{
     isOpen: boolean;
     rowId: string | null;
@@ -218,7 +218,7 @@ export default function PayoutsPage() {
   if (selectedRestaurantForDetails) {
     return (
       <OrderLevelBreakdown 
-        restaurantId={selectedRestaurantForDetails.id}
+        payoutId={selectedRestaurantForDetails.payoutId}
         restaurantName={selectedRestaurantForDetails.name}
         onBack={() => setSelectedRestaurantForDetails(null)} 
       />
@@ -493,7 +493,7 @@ export default function PayoutsPage() {
                           <p className="text-gray-500 text-sm italic">Batch ID: {row.payoutId} • Created: {new Date(row.createdAtUtc).toLocaleString()}</p>
                           <Button 
                             className="mt-3 text-xs h-8 bg-gray-900 text-white"
-                            onClick={() => setSelectedRestaurantForDetails({ id: row.ownerId, name: row.displayName })}
+                            onClick={() => setSelectedRestaurantForDetails({ payoutId: row.payoutId, name: row.displayName })}
                           >
                             View Order Level Breakdown
                           </Button>
@@ -692,7 +692,7 @@ export default function PayoutsPage() {
                       <div className="h-[1px] bg-gray-100 my-1" />
                       <button 
                         onClick={() => {
-                          setSelectedRestaurantForDetails({ id: row.ownerId, name: row.displayName });
+                          setSelectedRestaurantForDetails({ payoutId: row.payoutId, name: row.displayName });
                           setDropdownState({ isOpen: false, rowId: null, rect: null });
                         }}
                         className="px-4 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50 text-left transition-colors w-full cursor-pointer"

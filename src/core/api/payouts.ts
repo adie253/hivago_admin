@@ -124,6 +124,44 @@ export interface RestaurantPayoutItem {
   transactionReference: string | null;
 }
 
+export interface RestaurantPayoutLedgerEntry {
+  id: string;
+  outletId: string;
+  orderId: string;
+  orderNumber: string;
+  orderAmount: number;
+  gstAmount: number;
+  commissionPercentage: number;
+  commissionFlatFee: number;
+  commissionAmount: number;
+  commissionGst: number;
+  tdsAmount: number;
+  netAmount: number;
+  status: string;
+  createdAtUtc: string;
+}
+
+export interface RestaurantPayoutBreakdown {
+  payoutId: string;
+  ownerId: string;
+  displayName: string;
+  cycleStart: string;
+  cycleEnd: string;
+  orderCount: number;
+  grossOrderAmount: number;
+  totalGstCollected: number;
+  totalCommission: number;
+  totalCommissionGst: number;
+  totalTds: number;
+  netPayoutAmount: number;
+  status: PayoutStatus;
+  transactionReference: string | null;
+  paidAtUtc: string | null;
+  notes: string | null;
+  createdAtUtc: string;
+  ledgerEntries: RestaurantPayoutLedgerEntry[];
+}
+
 export interface RestaurantPayoutsPagedResult {
   items: RestaurantPayoutItem[];
   totalCount: number;
@@ -189,6 +227,11 @@ export const payoutService = {
 
   getRestaurantPayouts: async (params: PayoutFilter = {}): Promise<RestaurantPayoutsPagedResult> => {
     const response = await apiClient.get('/admin/payouts/restaurant', { params });
+    return response as any;
+  },
+
+  getRestaurantPayoutBreakdown: async (payoutId: string): Promise<RestaurantPayoutBreakdown> => {
+    const response = await apiClient.get(`/admin/payouts/restaurant/${payoutId}`);
     return response as any;
   },
 
