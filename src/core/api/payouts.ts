@@ -19,6 +19,73 @@ export interface ExportMeta {
   excluded: ExcludedPayout[];
 }
 
+export interface UnresolvedItem {
+  rowNumber: number;
+  beneficiaryName: string;
+  accountNumber: string;
+  amount: number;
+  reason: string;
+}
+
+export interface ReconcileResult {
+  exportBatchId: string;
+  rowsInFile: number;
+  markedPaid: number;
+  markedFailed: number;
+  alreadyResolvedSkipped: number;
+  unresolved: UnresolvedItem[];
+  batchFullyReconciled: boolean;
+}
+
+export interface BatchSummary {
+  id: string;
+  periodStart: string;       // date, e.g. "2026-07-27"
+  periodEnd: string;
+  rowCount: number;
+  controlSumTotal: number;
+  status: 'Generated' | 'Reconciled';
+  generatedByAdminId: string;
+  generatedAtUtc: string;
+  reconciledByAdminId: string | null;
+  reconciledAtUtc: string | null;
+  processingCount: number;   // still awaiting reconcile
+  paidCount: number;
+  failedCount: number;
+}
+
+export interface BatchSummaryPagedResult {
+  items: BatchSummary[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface StaleRestaurantPayout {
+  payoutId: string;
+  ownerId: string;
+  netPayoutAmount: number;
+  exportBatchId: string | null;
+  exportedAtUtc: string | null;
+  daysStale: number;
+  bankAccountNumber: string | null;
+  bankIfscCode: string | null;
+}
+
+export interface StaleRiderPayout {
+  payoutId: string;
+  riderId: string;
+  netPayable: number;
+  exportBatchId: string | null;
+  exportedAtUtc: string | null;
+  daysStale: number;
+}
+
+export interface ManualResolveRequest {
+  outcome: 'Paid' | 'Failed';
+  transactionReference?: string;  // REQUIRED if outcome is 'Paid', omit/ignore if 'Failed'
+  reason: string;                 // REQUIRED always, min 10 chars
+}
+
 export class ExportError extends Error {
   status: number;
   isNotFound: boolean;
@@ -28,6 +95,38 @@ export class ExportError extends Error {
     this.status = status;
     this.isNotFound = status === 404;
   }
+}
+
+export function extractErrorMessage(err: any, fallback: string = 'An error occurred'): string {
+  const data = err?.response?.data || err?.data || err;
+  if (data) {
+    if (typeof data.message === 'string' && data.message.trim()) {
+      return data.message;
+    }
+    if (typeof data.error === 'string' && data.error.trim()) {
+      return data.error;
+    }
+  }
+  return err?.message || fallback;
+}
+
+export function isSuperAdmin(): boolean {
+  const { token, user } = useAuthStore.getState();
+  if (token) {
+    try {
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+        const role = payload.role || payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || payload.Role;
+        if (role) {
+          return String(role).toLowerCase() === 'superadmin';
+        }
+      }
+    } catch {
+      // ignore JSON parse error
+    }
+  }
+  return user?.role?.toLowerCase() === 'superadmin';
 }
 
 async function executePayoutExport(url: string, defaultFilename: string): Promise<ExportMeta> {
@@ -43,7 +142,7 @@ async function executePayoutExport(url: string, defaultFilename: string): Promis
     let errorMessage = 'Export failed';
     try {
       const body = await res.json();
-      errorMessage = body.message || errorMessage;
+      errorMessage = extractErrorMessage(body, errorMessage);
     } catch {
       if (res.status === 404) {
         errorMessage = 'Nothing to export for this week';
@@ -235,11 +334,6 @@ export const payoutService = {
     return response as any;
   },
 
-  payNow: async (payoutId: string): Promise<{ transactionReference: string; status: PayoutStatus }> => {
-    const response = await apiClient.post(`/admin/payouts/restaurant/${payoutId}/pay-now`);
-    return response as any;
-  },
-
   holdPayout: async (payoutId: string, reason?: string): Promise<void> => {
     await apiClient.post(`/admin/payouts/restaurant/${payoutId}/hold`, { reason });
   },
@@ -259,11 +353,6 @@ export const payoutService = {
 
   getRiderPayouts: async (params: PayoutFilter = {}): Promise<RiderPayoutsPagedResult> => {
     const response = await apiClient.get('/admin/payouts/rider', { params });
-    return response as any;
-  },
-
-  payRiderNow: async (payoutId: string): Promise<{ transactionReference: string; status: PayoutStatus }> => {
-    const response = await apiClient.post(`/admin/payouts/rider/${payoutId}/pay-now`);
     return response as any;
   },
 
@@ -292,5 +381,58 @@ export const payoutService = {
     const cleanEnd = cycleEndUtc.split('T')[0];
     return executePayoutExport(url, `rider-payouts-${cleanStart}-${cleanEnd}.xlsx`);
   },
-};
 
+  // Step 1: Reconcile ICICI Response Upload
+  reconcileRestaurantPayouts: async (batchId: string, file: File): Promise<ReconcileResult> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiClient.post(`/admin/payouts/restaurant/reconcile?batchId=${encodeURIComponent(batchId)}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response as any;
+  },
+
+  reconcileRiderPayouts: async (batchId: string, file: File): Promise<ReconcileResult> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiClient.post(`/admin/payouts/rider/reconcile?batchId=${encodeURIComponent(batchId)}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response as any;
+  },
+
+  // Step 2: Batch List
+  getRestaurantBatches: async (params: { status?: string; page?: number; pageSize?: number } = {}): Promise<BatchSummaryPagedResult | BatchSummary[]> => {
+    const response = await apiClient.get('/admin/payouts/restaurant/batches', { params });
+    return response as any;
+  },
+
+  getRiderBatches: async (params: { status?: string; page?: number; pageSize?: number } = {}): Promise<BatchSummaryPagedResult | BatchSummary[]> => {
+    const response = await apiClient.get('/admin/payouts/rider/batches', { params });
+    return response as any;
+  },
+
+  // Step 3: Stale Report
+  getStaleRestaurantPayouts: async (olderThanDays: number = 3): Promise<StaleRestaurantPayout[]> => {
+    const response = await apiClient.get(`/admin/payouts/restaurant/stale?olderThanDays=${olderThanDays}`);
+    return response as any;
+  },
+
+  getStaleRiderPayouts: async (olderThanDays: number = 3): Promise<StaleRiderPayout[]> => {
+    const response = await apiClient.get(`/admin/payouts/rider/stale?olderThanDays=${olderThanDays}`);
+    return response as any;
+  },
+
+  // Step 4: Manual Resolve
+  manualResolveRestaurantPayout: async (payoutId: string, data: ManualResolveRequest): Promise<void> => {
+    await apiClient.post(`/admin/payouts/restaurant/${payoutId}/manual-resolve`, data);
+  },
+
+  manualResolveRiderPayout: async (payoutId: string, data: ManualResolveRequest): Promise<void> => {
+    await apiClient.post(`/admin/payouts/rider/${payoutId}/manual-resolve`, data);
+  },
+};

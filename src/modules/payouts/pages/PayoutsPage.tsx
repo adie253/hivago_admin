@@ -11,14 +11,17 @@ import {
   Send,
   TrendingDown,
   DollarSign,
-  Clock
+  Clock,
+  ShieldAlert
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { Button } from '@/components/ui/Button';
-import { payoutService, type PayoutStatus } from '@/core/api/payouts';
+import { payoutService, isSuperAdmin, type PayoutStatus } from '@/core/api/payouts';
 import OrderLevelBreakdown from '../components/OrderLevelBreakdown';
 import ICICIPayoutExportCard from '../components/ICICIPayoutExportCard';
+import StalePayoutsBanner from '../components/StalePayoutsBanner';
+import ManualResolveModal from '../components/ManualResolveModal';
 import toast from 'react-hot-toast';
 import { CustomPromptModal, CustomConfirmModal } from '@/components/ui/CustomPopups';
 
@@ -30,6 +33,9 @@ export default function PayoutsPage() {
 
   const [selectedPayoutId, setSelectedPayoutId] = useState<string | null>(null);
   const [selectedRestaurantForDetails, setSelectedRestaurantForDetails] = useState<{ payoutId: string; name: string } | null>(null);
+  const [prefilledBatchId, setPrefilledBatchId] = useState<string | null>(null);
+  const [manualResolveTarget, setManualResolveTarget] = useState<string | null>(null);
+
   const [dropdownState, setDropdownState] = useState<{
     isOpen: boolean;
     rowId: string | null;
@@ -37,7 +43,7 @@ export default function PayoutsPage() {
   }>({ isOpen: false, rowId: null, rect: null });
   const [holdModalData, setHoldModalData] = useState<{ payoutId: string; isRider: boolean } | null>(null);
   const [confirmModalData, setConfirmModalData] = useState<{
-    type: 'pay-now' | 'release-hold' | 'retry';
+    type: 'release-hold' | 'retry';
     payoutId: string;
     isRider: boolean;
     displayName: string;
@@ -82,16 +88,6 @@ export default function PayoutsPage() {
     enabled: primaryTab === 'rider',
   });
 
-  const payNowMutation = useMutation({
-    mutationFn: payoutService.payNow,
-    onSuccess: (data) => {
-      toast.success(`Payout triggered! Txn Ref: ${data.transactionReference}`);
-      queryClient.invalidateQueries({ queryKey: ['payoutSummary'] });
-      queryClient.invalidateQueries({ queryKey: ['restaurantPayouts'] });
-    },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to trigger payout'),
-  });
-
   const holdMutation = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason?: string }) => payoutService.holdPayout(id, reason),
     onSuccess: () => {
@@ -126,16 +122,6 @@ export default function PayoutsPage() {
     onError: (err: any) => {
       toast.error(err.response?.data?.message || 'Failed to retry payout');
     }
-  });
-
-  const payRiderNowMutation = useMutation({
-    mutationFn: payoutService.payRiderNow,
-    onSuccess: (data) => {
-      toast.success(`Rider payout triggered! Txn Ref: ${data.transactionReference}`);
-      queryClient.invalidateQueries({ queryKey: ['riderPayoutSummary'] });
-      queryClient.invalidateQueries({ queryKey: ['riderPayouts'] });
-    },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to trigger rider payout'),
   });
 
   const holdRiderMutation = useMutation({
@@ -235,7 +221,7 @@ export default function PayoutsPage() {
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-[28px] font-bold text-gray-900 tracking-tight">Payouts</h1>
-          <p className="text-[14px] text-gray-500 mt-1">Manage automated payouts, bulk ICICI transfers, and exceptions</p>
+          <p className="text-[14px] text-gray-500 mt-1">Manage automated payouts, bulk ICICI transfers, bank reconciliation, and exceptions</p>
         </div>
         
         <div className="flex items-center gap-3">
@@ -250,10 +236,17 @@ export default function PayoutsPage() {
         </div>
       </div>
 
-      {/* ICICI Bulk Export Feature Panel */}
+      {/* Step 3: Stale Payouts Report Warning Banner */}
+      <StalePayoutsBanner 
+        activeTab={primaryTab}
+        onSelectBatchId={(batchId) => setPrefilledBatchId(batchId)}
+      />
+
+      {/* ICICI Bulk Export & Bank Reconciliation Feature Panel */}
       <ICICIPayoutExportCard 
         activeTab={primaryTab} 
         onTabChange={(tab) => setPrimaryTab(tab)} 
+        prefilledBatchId={prefilledBatchId}
       />
 
       {/* Main Tabs */}
@@ -382,7 +375,7 @@ export default function PayoutsPage() {
       {/* Table Section */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-gray-100">
-          <h2 className="text-[16px] font-bold text-gray-900">Restaurant Payouts</h2>
+          <h2 className="text-[16px] font-bold text-gray-900">{primaryTab === 'restaurant' ? 'Restaurant' : 'Rider'} Payouts</h2>
           <p className="text-[13px] text-gray-500 mt-0.5">Click any row to view full breakdown</p>
         </div>
         
@@ -468,7 +461,6 @@ export default function PayoutsPage() {
                     </TableCell>
                     <TableCell className="py-4 px-6 text-right relative">
                       <button 
-                        disabled={row.status === 'Processing'}
                         onClick={(e) => {
                           e.stopPropagation();
                           if (dropdownState.isOpen && dropdownState.rowId === row.payoutId) {
@@ -478,7 +470,7 @@ export default function PayoutsPage() {
                             setDropdownState({ isOpen: true, rowId: row.payoutId, rect });
                           }
                         }} 
-                        className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ml-auto flex items-center justify-center relative z-10 disabled:opacity-30"
+                        className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ml-auto flex items-center justify-center relative z-10"
                       >
                         <MoreVertical className="w-4 h-4" />
                       </button>
@@ -553,7 +545,6 @@ export default function PayoutsPage() {
                     </TableCell>
                     <TableCell className="py-4 px-6 text-right relative">
                       <button 
-                        disabled={row.status === 'Processing'}
                         onClick={(e) => {
                           e.stopPropagation();
                           if (dropdownState.isOpen && dropdownState.rowId === row.payoutId) {
@@ -563,7 +554,7 @@ export default function PayoutsPage() {
                             setDropdownState({ isOpen: true, rowId: row.payoutId, rect });
                           }
                         }} 
-                        className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ml-auto flex items-center justify-center relative z-10 disabled:opacity-30"
+                        className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors ml-auto flex items-center justify-center relative z-10"
                       >
                         <MoreVertical className="w-4 h-4" />
                       </button>
@@ -617,22 +608,19 @@ export default function PayoutsPage() {
 
               return (
                 <>
-                  {(row.status === 'Pending' || row.status === 'Failed') && (
-                    <button 
+                  {/* Step 0: NO "Pay Now" menu option here. Deliberately removed as payouts are only paid via reconciliation or manual resolve. */}
+
+                  {/* Step 4: Surface Manual Resolve for Processing rows (SuperAdmin only) */}
+                  {row.status === 'Processing' && isSuperAdmin() && (
+                    <button
                       onClick={() => {
-                        setConfirmModalData({
-                          type: 'pay-now',
-                          payoutId: row.payoutId,
-                          isRider,
-                          displayName: row.displayName,
-                          amount: isRider ? row.finalPayout : row.netPayable
-                        });
+                        setManualResolveTarget(row.payoutId);
                         setDropdownState({ isOpen: false, rowId: null, rect: null });
                       }}
-                      className="px-4 py-2.5 text-[13px] font-bold text-[#059669] hover:bg-green-50 text-left transition-colors flex items-center gap-2 w-full cursor-pointer"
+                      className="px-4 py-2.5 text-[13px] font-bold text-[#d72b1f] hover:bg-red-50 text-left transition-colors flex items-center gap-2 w-full cursor-pointer"
                     >
-                      <Send className="w-3.5 h-3.5" />
-                      Pay Now
+                      <ShieldAlert className="w-3.5 h-3.5" />
+                      Manual Resolve
                     </button>
                   )}
 
@@ -728,20 +716,14 @@ export default function PayoutsPage() {
         confirmText="Place on Hold"
       />
 
-      {/* Global Confirm Modal */}
+      {/* Global Confirm Modal (Release Hold / Retry) */}
       <CustomConfirmModal
         isOpen={!!confirmModalData}
         onClose={() => setConfirmModalData(null)}
         onConfirm={() => {
           if (!confirmModalData) return;
           const { type, payoutId, isRider } = confirmModalData;
-          if (type === 'pay-now') {
-            if (isRider) {
-              payRiderNowMutation.mutate(payoutId);
-            } else {
-              payNowMutation.mutate(payoutId);
-            }
-          } else if (type === 'release-hold') {
+          if (type === 'release-hold') {
             if (isRider) {
               releaseRiderHoldMutation.mutate(payoutId);
             } else {
@@ -757,29 +739,40 @@ export default function PayoutsPage() {
         }}
         title={
           confirmModalData
-            ? confirmModalData.type === 'pay-now' ? 'Trigger Payout' :
-              confirmModalData.type === 'release-hold' ? 'Release Hold' :
+            ? confirmModalData.type === 'release-hold' ? 'Release Hold' :
               'Retry Payout'
             : ''
         }
         message={
           confirmModalData
-            ? confirmModalData.type === 'pay-now'
-              ? `Are you sure you want to trigger immediate payout of ₹${confirmModalData.amount.toLocaleString()} to ${confirmModalData.displayName} via gateway? This action cannot be undone.`
-              : confirmModalData.type === 'release-hold'
+            ? confirmModalData.type === 'release-hold'
               ? `Are you sure you want to release the hold on this payout for ${confirmModalData.displayName}? It will return to Pending and be processed in the next run.`
               : `Are you sure you want to re-queue this failed payout for ${confirmModalData.displayName} for the next auto-run?`
             : ''
         }
         confirmText={
           confirmModalData
-            ? confirmModalData.type === 'pay-now' ? 'Pay Now' :
-              confirmModalData.type === 'release-hold' ? 'Release Hold' :
+            ? confirmModalData.type === 'release-hold' ? 'Release Hold' :
               'Retry Payout'
             : 'Confirm'
         }
         cancelText="Cancel"
-        isDestructive={confirmModalData?.type === 'pay-now'}
+      />
+
+      {/* Step 4: Manual Resolve Modal */}
+      <ManualResolveModal
+        isOpen={!!manualResolveTarget}
+        payoutId={manualResolveTarget}
+        isRider={primaryTab === 'rider'}
+        onClose={() => setManualResolveTarget(null)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['payoutSummary'] });
+          queryClient.invalidateQueries({ queryKey: ['restaurantPayouts'] });
+          queryClient.invalidateQueries({ queryKey: ['riderPayoutSummary'] });
+          queryClient.invalidateQueries({ queryKey: ['riderPayouts'] });
+          queryClient.invalidateQueries({ queryKey: ['payoutBatches'] });
+          queryClient.invalidateQueries({ queryKey: ['stalePayouts'] });
+        }}
       />
     </div>
   );
