@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import { 
   Download, 
   FileSpreadsheet, 
@@ -16,9 +15,7 @@ import {
   FileUp,
   X,
   History,
-  ShieldAlert,
-  HelpCircle,
-  FileCheck
+  ShieldAlert
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { Button } from '@/components/ui/Button';
@@ -86,7 +83,6 @@ function getTwoWeeksAgoDateRange() {
 }
 
 export default function ICICIPayoutExportCard({ activeTab, onTabChange, prefilledBatchId }: ICICIPayoutExportCardProps) {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const defaultRange = getLastWeekDateRange();
   const fileInputRef = useRef<HTMLInputElement>(null);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { AlertTriangle, CheckCircle2, XCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { isSuperAdmin, extractErrorMessage, payoutService, type ManualResolveRequest } from '@/core/api/payouts';

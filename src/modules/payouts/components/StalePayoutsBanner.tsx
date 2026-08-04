@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, ChevronRight, Clock, ShieldAlert, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
