@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { Search, Eye, Loader2, Users, Plus, Unlock } from 'lucide-react';
 import { riderService, type AdminRider } from '@/core/api/riders';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -71,6 +71,8 @@ export default function RidersPage() {
         isOnline: statusFilter === 'all' ? undefined : statusFilter === 'online',
         kycStatus: kycFilter || undefined,
       }),
+    refetchInterval: 2 * 60 * 1000,
+    placeholderData: keepPreviousData,
   });
 
   const riders = data?.riders ?? [];
