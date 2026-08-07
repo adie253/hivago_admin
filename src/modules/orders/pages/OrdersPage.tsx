@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
   Search, 
@@ -105,6 +105,8 @@ export default function OrdersPage() {
       page: debouncedSearchTerm ? 1 : page,
       pageSize: debouncedSearchTerm ? 500 : pageSize
     }),
+    placeholderData: keepPreviousData,
+    refetchInterval: 2 * 60 * 1000,
   });
 
   const allOrders = data?.items || [];
@@ -306,12 +308,19 @@ export default function OrdersPage() {
             >
               <tab.icon className={cn("h-[18px] w-[18px]", isActive ? tab.activeColor : "text-gray-400")} />
               <span>{tab.label}</span>
-              <span className={cn(
-                "ml-1 px-2 py-0.5 rounded-full text-xs",
-                isActive ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"
-              )}>
-                {count}
-              </span>
+              {isLoading && !data ? (
+                <span className={cn(
+                  "ml-1 h-4 w-7 rounded-full animate-pulse inline-block",
+                  isActive ? "bg-emerald-200" : "bg-gray-200"
+                )} />
+              ) : (
+                <span className={cn(
+                  "ml-1 px-2 py-0.5 rounded-full text-xs",
+                  isActive ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"
+                )}>
+                  {count}
+                </span>
+              )}
             </button>
           );
         })}
