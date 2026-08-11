@@ -21,6 +21,9 @@ const addRestaurantSchema = z.object({
   addressLine: z.string().min(5, 'Address is required'),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
+  bankAccountName: z.string().min(1, 'Bank Account Name is required'),
+  bankAccountNumber: z.string().min(1, 'Bank Account Number is required'),
+  bankIfscCode: z.string().min(1, 'IFSC Code is required').refine(val => val.length === 11, 'IFSC Code must be exactly 11 characters'),
 });
 
 export function AddRestaurantModal({ isOpen, onClose }: AddRestaurantModalProps) {
@@ -38,8 +41,14 @@ export function AddRestaurantModal({ isOpen, onClose }: AddRestaurantModalProps)
     longitude: 0,
   });
 
-  const [latInput, setLatInput] = useState('0');
-  const [lngInput, setLngInput] = useState('0');
+  const [bankData, setBankData] = useState({
+    bankAccountName: '',
+    bankAccountNumber: '',
+    bankIfscCode: '',
+  });
+
+  const [latInput, setLatInput] = useState('');
+  const [lngInput, setLngInput] = useState('');
 
   const [errorMsg, setErrorMsg] = useState('');
   const [ownerSearchQuery, setOwnerSearchQuery] = useState('');
@@ -89,13 +98,19 @@ export function AddRestaurantModal({ isOpen, onClose }: AddRestaurantModalProps)
     onSuccess: () => {
       toast.success('Restaurant created successfully!');
       queryClient.invalidateQueries({ queryKey: ['restaurants'] });
+      queryClient.invalidateQueries({ queryKey: ['owners'] });
       onClose();
       setFormData({
         ownerId: '', name: '', phone: '', email: '', password: '', addressLine: '', 
         latitude: 0, longitude: 0
       });
-      setLatInput('0');
-      setLngInput('0');
+      setBankData({
+        bankAccountName: '',
+        bankAccountNumber: '',
+        bankIfscCode: '',
+      });
+      setLatInput('');
+      setLngInput('');
       setSelectedOwner(null);
       setOwnerSearchQuery('');
       setErrorMsg('');
@@ -109,15 +124,35 @@ export function AddRestaurantModal({ isOpen, onClose }: AddRestaurantModalProps)
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     try {
-      addRestaurantSchema.parse(formData);
-      mutation.mutate(formData);
-    } catch (err) {
+      const parsedLat = latInput.trim() === '' ? 0 : parseFloat(latInput);
+      const parsedLng = lngInput.trim() === '' ? 0 : parseFloat(lngInput);
+      const payload: CreateRestaurantPayload = {
+        ...formData,
+        latitude: isNaN(parsedLat) ? 0 : parsedLat,
+        longitude: isNaN(parsedLng) ? 0 : parsedLng,
+      };
+
+      addRestaurantSchema.parse({ ...payload, ...bankData });
+      
+      // Update owner's bank details first to ensure banking info is attached
+      await ownerService.updateBankDetails(formData.ownerId, {
+        bankAccountName: bankData.bankAccountName.trim(),
+        bankAccountNumber: bankData.bankAccountNumber.trim(),
+        bankIfscCode: bankData.bankIfscCode.trim().toUpperCase(),
+      });
+
+      mutation.mutate(payload);
+    } catch (err: any) {
       if (err instanceof z.ZodError) {
-        const msg = (err as any).issues?.[0]?.message || 'Validation error. Please check your inputs.';
+        const msg = err.issues?.[0]?.message || 'Validation error. Please check your inputs.';
+        setErrorMsg(msg);
+        toast.error(msg);
+      } else {
+        const msg = err?.response?.data?.message || err?.message || 'Failed to update owner bank details.';
         setErrorMsg(msg);
         toast.error(msg);
       }
@@ -127,6 +162,11 @@ export function AddRestaurantModal({ isOpen, onClose }: AddRestaurantModalProps)
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     
+    if (name === 'bankAccountName' || name === 'bankAccountNumber' || name === 'bankIfscCode') {
+      setBankData(prev => ({ ...prev, [name]: value }));
+      return;
+    }
+
     if (name === 'latitude') {
       setLatInput(value);
       const parsed = parseFloat(value);
@@ -206,6 +246,7 @@ export function AddRestaurantModal({ isOpen, onClose }: AddRestaurantModalProps)
                     onClick={() => {
                       setSelectedOwner(null);
                       setFormData(prev => ({ ...prev, ownerId: '' }));
+                      setBankData({ bankAccountName: '', bankAccountNumber: '', bankIfscCode: '' });
                       setOwnerSearchQuery('');
                       setTimeout(() => setIsOwnerDropdownOpen(true), 100);
                     }}
@@ -228,6 +269,11 @@ export function AddRestaurantModal({ isOpen, onClose }: AddRestaurantModalProps)
                             onClick={() => {
                               setSelectedOwner(owner);
                               setFormData(prev => ({ ...prev, ownerId: owner.id }));
+                              setBankData({
+                                bankAccountName: owner.bankAccountName || '',
+                                bankAccountNumber: owner.bankAccountNumber || '',
+                                bankIfscCode: owner.bankIfscCode || '',
+                              });
                               setIsOwnerDropdownOpen(false);
                               setErrorMsg('');
                             }}
@@ -260,29 +306,31 @@ export function AddRestaurantModal({ isOpen, onClose }: AddRestaurantModalProps)
 
             <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-5 mt-5">
               <div className="space-y-1.5">
-                <label className="text-[13px] font-semibold text-gray-700">Restaurant Name</label>
+                <label className="text-[13px] font-semibold text-gray-700">Restaurant Name <span className="text-red-500">*</span></label>
                 <input 
                   name="name" 
                   value={formData.name} 
                   onChange={handleChange} 
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50/50 text-sm focus:ring-1 focus:ring-primary focus:bg-white transition-colors placeholder:text-gray-400" 
                   placeholder="Enter restaurant name"
+                  required
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[13px] font-semibold text-gray-700">Contact Number</label>
+                <label className="text-[13px] font-semibold text-gray-700">Contact Number <span className="text-red-500">*</span></label>
                 <input 
                   name="phone" 
                   value={formData.phone} 
                   onChange={handleChange} 
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50/50 text-sm focus:ring-1 focus:ring-primary focus:bg-white transition-colors placeholder:text-gray-400" 
                   placeholder="+91 98765 00000"
+                  required
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[13px] font-semibold text-gray-700">Email Address</label>
+              <label className="text-[13px] font-semibold text-gray-700">Email Address <span className="text-red-500">*</span></label>
               <input 
                 type="email" 
                 name="email" 
@@ -290,11 +338,12 @@ export function AddRestaurantModal({ isOpen, onClose }: AddRestaurantModalProps)
                 onChange={handleChange} 
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50/50 text-sm focus:ring-1 focus:ring-primary focus:bg-white transition-colors placeholder:text-gray-400" 
                 placeholder="contact@restaurant.com"
+                required
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[13px] font-semibold text-gray-700">Initial Password</label>
+              <label className="text-[13px] font-semibold text-gray-700">Initial Password <span className="text-red-500">*</span></label>
               <input 
                 type="password" 
                 name="password" 
@@ -302,17 +351,19 @@ export function AddRestaurantModal({ isOpen, onClose }: AddRestaurantModalProps)
                 onChange={handleChange} 
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50/50 text-sm focus:ring-1 focus:ring-primary focus:bg-white transition-colors placeholder:text-gray-400" 
                 placeholder="••••••••"
+                required
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[13px] font-semibold text-gray-700">Address</label>
+              <label className="text-[13px] font-semibold text-gray-700">Address <span className="text-red-500">*</span></label>
               <input 
                 name="addressLine" 
                 value={formData.addressLine} 
                 onChange={handleChange} 
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50/50 text-sm focus:ring-1 focus:ring-primary focus:bg-white transition-colors placeholder:text-gray-400" 
                 placeholder="Full restaurant address"
+                required
               />
             </div>
 
@@ -334,6 +385,46 @@ export function AddRestaurantModal({ isOpen, onClose }: AddRestaurantModalProps)
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50/50 text-sm focus:ring-1 focus:ring-primary focus:bg-white transition-colors" 
                   placeholder="0.0000"
                 />
+              </div>
+            </div>
+
+            {/* Banking Details */}
+            <div className="pt-4 mt-2 border-t border-gray-100">
+              <h3 className="text-sm font-bold text-gray-900 mb-4">Banking & Payout Details</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5 col-span-2">
+                  <label className="text-[13px] font-semibold text-gray-700">Bank Account Name <span className="text-red-500">*</span></label>
+                  <input 
+                    name="bankAccountName" 
+                    value={bankData.bankAccountName} 
+                    onChange={handleChange} 
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50/50 text-sm focus:ring-1 focus:ring-primary focus:bg-white transition-colors placeholder:text-gray-400" 
+                    placeholder="Name as per bank records" 
+                    required 
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-semibold text-gray-700">Account Number <span className="text-red-500">*</span></label>
+                  <input 
+                    name="bankAccountNumber" 
+                    value={bankData.bankAccountNumber} 
+                    onChange={handleChange} 
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50/50 text-sm focus:ring-1 focus:ring-primary focus:bg-white transition-colors placeholder:text-gray-400" 
+                    placeholder="Account Number" 
+                    required 
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-semibold text-gray-700">IFSC Code <span className="text-red-500">*</span></label>
+                  <input 
+                    name="bankIfscCode" 
+                    value={bankData.bankIfscCode} 
+                    onChange={handleChange} 
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50/50 text-sm focus:ring-1 focus:ring-primary focus:bg-white transition-colors placeholder:text-gray-400 uppercase" 
+                    placeholder="IFSC Code" 
+                    required 
+                  />
+                </div>
               </div>
             </div>
           </form>
