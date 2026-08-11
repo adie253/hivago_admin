@@ -18,20 +18,9 @@ const addOwnerSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
   panNumber: z.string().optional().refine(val => !val || val.length === 10, 'PAN must be exactly 10 characters'),
   gstNumber: z.string().optional().refine(val => !val || val.length === 15, 'GST must be exactly 15 characters'),
-  bankAccountNumber: z.string().optional(),
-  bankIfscCode: z.string().optional().refine(val => !val || val.length === 11, 'IFSC must be exactly 11 characters'),
-  bankAccountName: z.string().optional(),
-}).superRefine((data, ctx) => {
-  const { bankAccountNumber, bankIfscCode, bankAccountName } = data;
-  const filledCount = [bankAccountNumber, bankIfscCode, bankAccountName].filter(f => !!f).length;
-  
-  if (filledCount > 0 && filledCount < 3) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'If any banking detail is filled, all three (Account Number, IFSC, and Name) are mandatory.',
-      path: ['bankAccountNumber']
-    });
-  }
+  bankAccountName: z.string().min(1, 'Bank Account Name is required'),
+  bankAccountNumber: z.string().min(1, 'Bank Account Number is required'),
+  bankIfscCode: z.string().min(1, 'IFSC Code is required').refine(val => val.length === 11, 'IFSC Code must be exactly 11 characters'),
 });
 
 export function AddOwnerModal({ isOpen, onClose }: AddOwnerModalProps) {
@@ -196,16 +185,16 @@ export function AddOwnerModal({ isOpen, onClose }: AddOwnerModalProps) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5 col-span-2">
-                  <label className="text-[13px] font-semibold text-gray-700">Bank Account Name</label>
-                  <input name="bankAccountName" value={formData.bankAccountName} onChange={handleChange} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50/50 text-sm focus:ring-1 focus:ring-primary focus:bg-white transition-colors placeholder:text-gray-400" placeholder="Name as per bank records" />
+                  <label className="text-[13px] font-semibold text-gray-700">Bank Account Name <span className="text-red-500">*</span></label>
+                  <input name="bankAccountName" value={formData.bankAccountName} onChange={handleChange} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50/50 text-sm focus:ring-1 focus:ring-primary focus:bg-white transition-colors placeholder:text-gray-400" placeholder="Name as per bank records" required />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-gray-700">Account Number</label>
-                  <input name="bankAccountNumber" value={formData.bankAccountNumber} onChange={handleChange} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50/50 text-sm focus:ring-1 focus:ring-primary focus:bg-white transition-colors placeholder:text-gray-400" placeholder="Account Number" />
+                  <label className="text-[13px] font-semibold text-gray-700">Account Number <span className="text-red-500">*</span></label>
+                  <input name="bankAccountNumber" value={formData.bankAccountNumber} onChange={handleChange} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50/50 text-sm focus:ring-1 focus:ring-primary focus:bg-white transition-colors placeholder:text-gray-400" placeholder="Account Number" required />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[13px] font-semibold text-gray-700">IFSC Code</label>
-                  <input name="bankIfscCode" value={formData.bankIfscCode} onChange={handleChange} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50/50 text-sm focus:ring-1 focus:ring-primary focus:bg-white transition-colors placeholder:text-gray-400 uppercase" placeholder="IFSC Code" />
+                  <label className="text-[13px] font-semibold text-gray-700">IFSC Code <span className="text-red-500">*</span></label>
+                  <input name="bankIfscCode" value={formData.bankIfscCode} onChange={handleChange} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50/50 text-sm focus:ring-1 focus:ring-primary focus:bg-white transition-colors placeholder:text-gray-400 uppercase" placeholder="IFSC Code" required />
                 </div>
               </div>
             </div>
