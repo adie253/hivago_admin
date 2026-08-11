@@ -11,7 +11,11 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    # GitHub-hosted runner IPs are blocked by Hostinger's FTP firewall (control-socket
+    # timeout, confirmed 2026-08-11 — connects fine from a normal residential/office IP,
+    # times out from every ubuntu-latest run). Self-hosted runner on a machine with a
+    # regular IP sidesteps this without waiting on Hostinger support.
+    runs-on: self-hosted
     steps:
       - name: Checkout
         uses: actions/checkout@v4
