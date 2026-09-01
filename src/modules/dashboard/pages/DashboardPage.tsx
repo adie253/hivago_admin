@@ -25,6 +25,7 @@ import RefundModal from '../components/RefundModal';
 import { ordersService } from '@/core/api/orders';
 import { useAuthStore } from '@/store/authStore';
 import { CancelOrderModal } from '@/components/ui/CancelOrderModal';
+import { useAlertSound } from '@/core/hooks/useAlertSound';
 
 export default function DashboardPage() {
   const token = useAuthStore(state => state.token);
@@ -144,9 +145,13 @@ export default function DashboardPage() {
 
   const { data: alerts, isLoading: isAlertsLoading } = useQuery({
     queryKey: ['adminAlerts', token],
-    queryFn: () => dashboardService.getAlerts(),
+    queryFn: () => dashboardService.getAlerts(50),
     enabled: !!token,
+    refetchInterval: 15000,
   });
+
+  const alertsArray = Array.isArray(alerts) ? alerts : ((alerts as any)?.items || (alerts as any)?.alerts);
+  useAlertSound(alertsArray);
 
   const { data: liveOrdersData, isLoading: isLiveOrdersLoading } = useQuery({
     queryKey: ['adminLiveOrders', token],
@@ -162,8 +167,6 @@ export default function DashboardPage() {
     pendingKyc: stats?.pendingKyc ?? 5,
     activeRestaurants: stats?.activeRestaurants ?? 42
   };
-
-  const alertsArray = Array.isArray(alerts) ? alerts : ((alerts as any)?.items || (alerts as any)?.alerts);
 
   const displayAlerts = alertsArray ? alertsArray : [
     {

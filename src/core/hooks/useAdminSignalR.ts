@@ -5,6 +5,8 @@ import { useAuthStore } from '@/store/authStore';
 import { API_URL } from '@/core/api/axios';
 import toast from 'react-hot-toast';
 
+import { playNotificationSound } from '@/utils/sound';
+
 export function useAdminSignalR() {
   const queryClient = useQueryClient();
   const token = useAuthStore(state => state.token);
@@ -28,6 +30,7 @@ export function useAdminSignalR() {
     // 1. OrderEscalated
     conn.on("OrderEscalated", (data) => {
       toast.error(`Order Escalated: ${data?.orderId || 'Unknown'}`);
+      playNotificationSound();
       queryClient.invalidateQueries({ queryKey: ['adminAlerts'] });
     });
 
